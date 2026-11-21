@@ -20,7 +20,7 @@ pipeline {
         }
         stage('Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'U', passwordVariable: 'P')]) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'U', passwordVariable: 'P')]) {
                     sh 'echo $P | docker login -u $U --password-stdin'
                     sh 'docker push narimen123/achat-devops:1.0.0'
                 }
