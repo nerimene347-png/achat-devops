@@ -1,52 +1,35 @@
 pipeline {
-  agent any
-
-  options {
-    skipDefaultCheckout(true)      // on fait nous-mêmes le checkout dans le stage "Git"
-  }
-
-  environment {
-    IMAGE = 'narimen123/achat-server:1.0.0'
-  }
-
-  stages {
-
-    stage('Git') {
-      steps {
-        checkout scm               // récupère le code depuis GitHub
-      }
-    }
-
-    stage('Maven build') {
-      steps {
-        dir('backend') {
-          sh 'mvn -B clean package -DskipTests'
+    agent any
+    stages {
+        stage('Git') {
+            steps { checkout scm }
         }
-      }
-    }
-
-    stage('Docker image') {
-      steps {
-        dir('backend') {
-          sh 'docker build -t $IMAGE .'
+        stage('Maven build') {
+            steps {
+                dir('apps/server') {
+                    sh 'mvn -B clean package -DskipTests'
+                }
+            }
         }
-      }
-    }
-
-    stage('Docker Hub') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhub',
-            usernameVariable: 'DH_USER', passwordVariable: 'DH_TOKEN')]) {
-          sh 'echo "$DH_TOKEN" | docker login -u "$DH_USER" --password-stdin'
-          sh 'docker push $IMAGE'
+        stage('Docker image') {
+            steps {
+                dir('apps/server') {
+                    sh 'docker build -f Dockerfile.server -t narimen123/achat-devops:1.0.0 .'
+                }
+            }
         }
-      }
+        stage('Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'U', passwordVariable: 'P')]) {
+                    sh 'echo $P | docker login -u $U --password-stdin'
+                    sh 'docker push narimen123/achat-devops:1.0.0'
+                }
+            }
+        }
+        stage('Docker-compose') {
+            steps {
+                sh 'docker compose up -d'
+            }
+        }
     }
-
-    stage('Docker-compose') {
-      steps {
-        sh 'docker compose up -d'
-      }
-    }
-  }
 }
