@@ -13,7 +13,7 @@ services:
   app-achat:
     depends_on:
       - postgresdb
-    image: narimen123/achat-server:1.0.0
+    image: narimen123/achat-devops:1.0.0
     restart: on-failure
     ports:
       - "8089:8080"
