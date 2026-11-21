@@ -1,39 +1,52 @@
-        stage('Git') {
-            steps {
-                git branch: 'feature-docker', url: 'https://github.com/nerimene347-png/achat-devops.git'
-            }
-        }pipeline {
-    agent any
+pipeline {
+  agent any
 
-    stages {
-        stage('Git') {
-            steps {
-                git branch: 'feature-docker', url: 'https://github.com/nerimene347-png/achat-devops.git'
-            }
-        }
+  options {
+    skipDefaultCheckout(true)      // on fait nous-mêmes le checkout dans le stage "Git"
+  }
 
-        stage('Building image') {
-            steps {
-                sh 'docker build -t narimen123/achat-server:1.0.0 -f apps/server/Dockerfile.server apps/server'
-            }
-        }
+  environment {
+    IMAGE = 'narimen123/achat-server:1.0.0'
+  }
 
-        stage('Deploy Image') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
-                    sh '''
-                        echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
-                        docker push narimen123/achat-server:1.0.0
-                    '''
-                }
-            }
-        }
+  stages {
 
-        stage('Docker Compose') {
-            steps {
-                sh 'docker compose up -d'
-            }
-        }
+    stage('Git') {
+      steps {
+        checkout scm               // récupère le code depuis GitHub
+      }
     }
+
+    stage('Maven build') {
+      steps {
+        dir('backend') {
+          sh 'mvn -B clean package -DskipTests'
+        }
+      }
+    }
+
+    stage('Docker image') {
+      steps {
+        dir('backend') {
+          sh 'docker build -t $IMAGE .'
+        }
+      }
+    }
+
+    stage('Docker Hub') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub',
+            usernameVariable: 'DH_USER', passwordVariable: 'DH_TOKEN')]) {
+          sh 'echo "$DH_TOKEN" | docker login -u "$DH_USER" --password-stdin'
+          sh 'docker push $IMAGE'
+        }
+      }
+    }
+
+    stage('Docker-compose') {
+      steps {
+        sh 'docker compose up -d'
+      }
+    }
+  }
 }
