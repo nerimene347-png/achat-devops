@@ -1,4 +1,8 @@
-pipeline {
+        stage('Git') {
+            steps {
+                git branch: 'feature-docker', url: 'https://github.com/nerimene347-png/achat-devops.git'
+            }
+        }pipeline {
     agent any
 
     stages {
